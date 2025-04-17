@@ -1040,6 +1040,154 @@ void slcBattle(rtpCharacter Enemy) {
 //this scenario is sometimes referred to as - slicing (there are legitimate use cases where we may want to do this, but it's frequently a bug)
 //slicing - phenomenon where a derived class object is treated as a base class object, leading to the potential loss of derived class information
 
+// Downcasting
+//using dwnc prefix for clarity
+class dwncCharacter {
+public:
+	dwncCharacter(string Name) : mName{ Name } {}
+	string dwncGetName() { return mName; }
+
+public:
+	//to use dynamic_cast our type MUST be polymorphic (type w at least one "virtual" function)
+	//if our type doesn't require any virtual functions, but we still want to use dynamic_cast - by convention we make the destructor virtual (wow)
+	virtual ~dwncCharacter() = default;
+
+private:
+	string mName;
+};
+class dwncGoblin : public dwncCharacter {
+public:
+	dwncGoblin(string Name) : dwncCharacter{ Name } {}
+	
+	void dwncEnrage() {
+		cout << "\nGetting Angry!";
+		Damage += 5;
+	}
+
+private:
+	int Damage{ 10 };
+};
+//having a Character* pointer we can call Character functions as expected
+void dwncAct(dwncCharacter* Enemy) {
+	cout << '\n' << Enemy->dwncGetName() << " Acting!";
+	//inheritance rule doesn't work in the other direction (not all Characters are Goblins)
+	//therefore if we have a variable of type Character* and we try to call function that is defined in the Goblin class - we get a compilation error
+	//Enemy->dwncEnrage();
+
+	//simplest form of the downcasting involves using the static_cast approach
+	//in our Act() function we can use it to convert our Character* pointer to a Goblin* pointer
+	dwncGoblin* dwncGoblinPtr{
+		static_cast<dwncGoblin*>(Enemy)
+	};
+	//we can then Enrage() using our Goblin* pointer
+	static_cast<dwncGoblin*>(Enemy)->dwncEnrage();
+
+	//why not just use Goblin* pointer?
+	//point of a run time polymorphism is that we want functions like Act() to work across a range of types
+	//(if we updated our parameter to be a Goblin* instead, we could call goblin-specified function directly, but we then couldn't call Act() w anything except goblins
+
+	//below our Act() function attempts to cast a Character* to a Goblin*
+	//(this is theoretically possible - Character is a base class for Goblin, so Character* pointer "could" be pointing at a Goblin)
+	//but in this specific case:
+	//int main(){ dwncCharacter Dragon{"Dave"}; dwncAct(&Dragon); }
+	//Act() function assumes that Character* always pointing at a Goblin - we have a bug, programm will behave unpredictably, likely crashing
+}
+//we have a pointer to a Character*, and we want to convert this to a pointer to a Goblin so we can access goblin-specific functionality
+// downcasting - scenario, where we are casting a pointer down the inheritance tree to a more specific subtype is called
+
+//downcasting can fail in one of two ways:
+// - compile time error (impossible downcasts)
+class dwncDragon : public dwncCharacter {};
+void dwncAct(dwncGoblin* Enemy) {
+	//casting a Goblin to a Dragon would never work (Goblin cannot possibly be a Dragon, as Dragon does not inherit from Goblin)
+	//static_cast<dwncDragon*>(Enemy);
+	//C2440: 'static_cast': cannot convert from '...*' to '...*'
+	//this is one of the advantages of static_cast over C-style casting (C-style would let this error through, resulting in a bug)
+	//(dwncDragon*)Enemy;
+}
+// - run time failure
+// second, more common way a downcast will fail is when our convertion is possible in theory, but is simply not valid in this specific case
+
+//for scenarios where an object may be or may not be a specific subtype (like calling Act() w Character* after downcasting a pointer to Goblin*), we need to use - dynamic casting
+//often the specific subtypes our functions are dealing w on each invocation will be different, and they will depend on runtime conditions such as user decisions
+
+//limitations af a static_cast: only checks if Character class is a base class of a Goblin (doesn't check whether this "specific" Character is a Goblin)
+//static_cast: done at compile time, no performance overhead, and this is great if we KNOW the downcast will work (used Act() only w Goblin), however, in many scenarios, we can't be sure
+//for this scenarios dynamic casting is better
+
+//the way we invoke dynamic_cast follows the same pattern as static_cast:
+void dwncHandle(dwncCharacter* Object) {
+	dwncGoblin* dwncGoblinPtr{
+		dynamic_cast<dwncGoblin*>(Object)
+	};
+	//key difference - dynamic_cast performs an additional run-time check to determine whether the pointer is actually pointing to the thing we're trying to cast it to
+	//(this case: whether Object pointer really is pointing at a Goblin)
+
+	//if the pointer was not pointing at the type we specified, dynamic_cast returns a nullptr
+	//this allows us to react to cast failures, because null pointers can be detected using an if statements
+	if (dwncGoblinPtr) {
+		cout << "\nThat was a Goblin";
+	}
+	else {
+		cout << "\nThat was NOT a Goblin";
+	}
+};
+
+//slightly more complex example (polymorphic combat system)
+class cdwncCharacter {
+public:
+	cdwncCharacter(string Name) : mName{ Name } {}
+	void cdwncTakeDamage(int Damage) {
+		cout << '\n' << mName << " Taking Damage";
+		mHealth -= Damage;
+	}
+
+	virtual void cdwncAct(cdwncCharacter* Target) {
+		Target->cdwncTakeDamage(50);
+	}
+
+protected:
+	string mName;
+	int mHealth{ 150 };
+};
+//two Character objects are passed to Battle() as pointers, and they both Act() upon each other
+void cdwncBattle(cdwncCharacter* A, cdwncCharacter* B) {
+	B->cdwncAct(A);
+	A->cdwncAct(B);
+}
+//let's add more subclasses, below Vampire now has its own dedicated class, and also developed a weakness to wooden stakes (represented by vampire-specific Stake())
+class cdwncVampire : public cdwncCharacter {
+public:
+	cdwncVampire(string Name) : cdwncCharacter{ Name }{}
+
+	void cdwncStake() {
+		cout << '\n' << mName << " Getting Staked";
+		mHealth -= 0;
+	}
+};
+//our player has become a VampireHunter which, for now, behaves in the same way as Character
+class cdwncVampireHunter : public cdwncCharacter {
+public:
+	cdwncVampireHunter(string Name) : cdwncCharacter{ Name } {}
+	
+	//we'd like to update our VampireHunter w the ability to Stake() vampire enemies, but we still need to fight non-vampires, too
+	//we can override Act() function and use dynamic_cast to determine whether or not we're fighting a Vampire
+	void cdwncAct(cdwncCharacter* Target) override {
+		cdwncVampire* cdwncVampirePtr{
+			dynamic_cast<cdwncVampire*>(Target)
+		};
+		if (cdwncVampirePtr) {
+			cdwncVampirePtr->cdwncStake();
+		}
+		else {
+			cdwncCharacter::cdwncAct(Target);
+		}
+	}
+};
+//in this process we didn't need to change our combat system (contrive Battle() and Character class it uses)
+//everything we needed was encapsulated away in our vampiric types
+//w polymorphism our combat system gets richer and more dynamic (w/out its code needing to get more complex or even change at all)
+
 
 int main() {
 	Level = Level + 1;
@@ -1788,7 +1936,36 @@ int main() {
 
 	slcGoblin slcBonker;
 	slcBattle(slcBonker);
-	
+
+	//Downcasting
+
+	dwncGoblin dwncBonker{"Bonker"};
+	//an object of a specific type has also the type of every ancestor class, here Bonker is Goblin and a Character as well, and can be passed to the Act() in the form of a Character*
+	//we're then able to call the inherited GetName() function
+	//dwncAct(&dwncBonker);
+	//dwncCharacter Dragon{ "Dave" };
+	//dwncAct(&Dragon); //execute code with that error was scary, haha
+
+	//to check for nullptr within dynamic_cast in action, we first pass Handle() a Goblin, and then a basic Character
+	dwncGoblin dwncEnemy{ "Enemy" };
+	dwncHandle(&dwncEnemy); // That was a Goblin
+	dwncCharacter dwncPlayer{ "Player" };
+	dwncHandle(&dwncPlayer); // That was NOT a Goblin
+
+	//slightly more complex example (polymorphic combat system)
+	cout << '\n';
+	cdwncCharacter cdwncPlayer{ "Player" };
+	cdwncCharacter cdwncEnemyGoblin{ "Goblin" };
+	cdwncBattle(&cdwncPlayer, &cdwncEnemyGoblin);
+	cout << '\n';
+	cdwncCharacter cdwncEnemyVampire{ "Vampire" };
+	cdwncBattle(&cdwncPlayer, &cdwncEnemyVampire);
+	cout << '\n';
+	cdwncVampireHunter cdwncHunterPlayer{ "Vampire Hunter" };
+	cdwncVampire cdwncOtherVampire{ "other Vampire" };
+	cdwncBattle(&cdwncHunterPlayer, &cdwncOtherVampire);
+	cout << '\n';
+
 
 	return 0; // Function w proclaimed return type should ALWAYS return somithing if else - code is invalid
 }
