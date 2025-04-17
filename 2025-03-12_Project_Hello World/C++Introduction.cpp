@@ -1,5 +1,5 @@
 #include <iostream>
-using namespace std;
+using namespace std; //should get rid of it, though don't know where exacly everywhere is, for using "std::" instead
 
 // Numeric Variables and Arithmetics
 int LargeNumber{ 100'000'000 };
@@ -12,7 +12,7 @@ int HealthModifier{ -10 };
 
 float MaxHealth{ 500.5 };
 
-// Conctant Expression - something that can be evaluated at built time
+// Constant Expression - something that can be evaluated at built time
 float Armor{ 0.2 }; // converting double to float in this case possible because compile can determine at build time if 0.2 (double) can be stored as 0.2f (float) so allows it
 
 // True & False Logic
@@ -953,6 +953,92 @@ int AddMyInt(int x, int y) { return x + y; }
 
 // Virtual Functions and Overrides
 //run time polymorphism can be achieved w techniques: inheritance, references and pointers, virtual functions
+//for related to the lesson examples may use rtp prefix (run time polymorphism), building combat system as an example
+class rtpCharacter {
+public:
+	//anytime we want our char to do somethin, we'll call Act() function and we'll pass a pointer to the target that our char interact w
+	virtual void rtpAct(rtpCharacter* Target) {
+		//marking Character version of this function as "virtual"
+		cout << "\nCharacter Acting";
+	}
+	//introducing a concept of chars being alive/dead
+	bool rtpGetIsAlive() {
+		return isAlive;
+	}
+protected:
+	bool isAlive{ true };
+};
+//then every type of object that we'll create will inherit from this base class
+class rtpGoblin : public rtpCharacter {
+	//our user defined subclasses may have different approach to Act() function, so we may override it using the prototype from Character base class, then we need to mark Character version as "virtual"
+public:
+	void rtpAct(rtpCharacter* Target) final { //accidently left a pointer to orig Character, so that led to mistakes in output
+		cout << "\nGoblin Acting!";
+	}
+};
+class rtpDragon : public rtpCharacter {
+public:
+	//when a class function is supplanting a virtual method on a base class in this way - it is considered an override (and when this happening we should be explicit by marking function w "override" keyword)
+	void rtpAct(rtpCharacter* Target) override {
+		//this's not required, but has it's benefits (so we should use it where applicable):
+		// - informs other devs reading our function that it is an override
+		// - compiler ensures that our function is overriding something - ensures there is a virtual function on a base class w same prototype
+		//when we later change our base class function parameters, any sub-class that was overriding it no longer will be, and by adding "override" specifier, compiler will detect that issue and alert us
+		//"override" provides both clarity and a compiler check
+		cout << "\nDragon Acting!";
+	}
+};
+//we can add breadth by adding more enemy types, w our types inheriting from Character (types don't always need to inherit from Character directly) and override functions as needed
+class rtpFireDragon : public rtpDragon{};
+class rtpFrostDragon : public rtpDragon{};
+class rtpStormDragon : public rtpDragon{};
+//this pattern keeps our project orginized and manageable; source code file might get a lil large but we can split our project across multiple files (keep types in dedicated files: Dragon.cpp or Goblin.cpp)
+
+//represent combat system as simple void function called rtpBattle
+void rtpBattle(rtpCharacter* A, rtpCharacter* B) {
+	//w introducing flive#dead abillity, no Battle() continue until one of combatants is dead (and since they don't have any HP - forever, for now)
+	//while (A->rtpGetIsAlive() && B->rtpGetIsAlive()) {
+		//receives two character pointers and has them Act() upon each other
+		A->rtpAct(B);
+		B->rtpAct(A);
+	//}
+}
+//w everithing in place, now we've achieved run-time polymorphism (w/out changing any code in our Battle() function, its behavior now is - dynamic)
+//we can add depth by expanding Character base class and Battle() function whilst keeping the complexity under control (w this basic system in place)
+
+//Inclusion of the "virtual" keyword in class function changes calls to this function from being - statically bound to being - dynamically bound
+
+//by default, C++ binds function calls to the function definitions in our code at compile time ("static binding" or "early binding")
+//static binding: compiler sees an expression like A->Act(), investigates type of A, in our Battle(): A - Character, so compiler associates this call to the Act() as defined within Character
+
+//by adding "virtual" specifier, we're asking the compiler to take different approach: compiler determines what specific type of object our pointer is pointing at, then calls version of Act() within that type
+//(if that type doesn't define it - we search up the inheritance tree until we find the nearest ancestor that does)
+//this needs to be done at a run time, so is reffered to as - dynamic binding or late binding (has small performance impact at a run time, so it's not used by default, we'll have to to explicitly opt it in, w "virtual")
+//"virtual" specifier: when function is called - compiler will use the "most derived" version of function
+
+//when our code encouters virtual function, the proccess of traversing inheritance tree to find most derived override effectively treats all intermediate functions as virtual too (whether they marked "virtual" or not)
+//in some scenarios, we may need to design our class in such a way that subtypes should not be able to override a function
+//in those cases, we can mark the function as - "final"
+//class rtpGoblin : public rtpCharacter { public: void rtpAct() final {} };
+class rtpGoblinWarrior : public rtpGoblin {
+public:
+	//void rtpAct(rtpCharacter* Target) override {} //E1850: cannot override 'final' function "..." (declared at line ...)
+};
+//"final" specifier: prevents further overriding of a function in derived classes
+
+//this form of a run-time polymorphism works only when we're passing our objects by reference or pointer
+//any object of a subtype can be copied to an object of a base type:
+class slcGoblin : public rtpCharacter {
+public:
+	int Damage{ 10 };
+};
+void slcBattle(rtpCharacter Enemy) {
+	//Enemy is always a basic Character
+}
+//within Battle() function Enemy is no longer a Goblin, it is a basic Character
+//any subtype specific variables, such as Damage int in this case, are simply discarded, living us w plain old Character
+//this scenario is sometimes referred to as - slicing (there are legitimate use cases where we may want to do this, but it's frequently a bug)
+//slicing - phenomenon where a derived class object is treated as a base class object, leading to the potential loss of derived class information
 
 
 int main() {
@@ -1696,8 +1782,13 @@ int main() {
 	//cout << '\n' << (int)"Hi"; //as a results using c-style casting we may have unpredictable results after compilation (while c++ casting would've thrown an error and would not compile)
 
 	// Virtual Functions and Overrides
+	rtpGoblin rtpA;
+	rtpDragon rtpB;
+	rtpBattle(&rtpA, &rtpB); //A and B enter Battle() and both using Act() defined in basic class
 
-
+	slcGoblin slcBonker;
+	slcBattle(slcBonker);
+	
 
 	return 0; // Function w proclaimed return type should ALWAYS return somithing if else - code is invalid
 }
