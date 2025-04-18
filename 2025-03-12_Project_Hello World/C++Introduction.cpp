@@ -1,3 +1,23 @@
+#define DEVELOPMENT_BUILD
+
+#define DEFINE_INT int MyInt{4};
+
+//preprocessor definition can span multiple lines, by using a "\" as a line break
+//we added white spaces to distinguish our C++ code from preprocessor code, but it's not required
+#define DEFINE_GREET			\
+void Greet(){					\
+	cout << "\nHello There";	\
+};
+
+// - function-like macros
+//macros can also accept arguments to use within their replacement text (makes them behave somewhat like functions)
+//following version accepts two arguments to be used in the replacement
+#define DEFINE_ARG_GREET(Greeting, Name)	\
+void argGreet() {	\
+	cout << '\n' << Greeting << ", I am " << Name	\
+		<< "\nNice to meet you!\n";	\
+};
+
 #include <iostream>
 using namespace std; //should get rid of it, though don't know where exacly everywhere is, for using "std::" instead
 
@@ -1188,6 +1208,64 @@ public:
 //everything we needed was encapsulated away in our vampiric types
 //w polymorphism our combat system gets richer and more dynamic (w/out its code needing to get more complex or even change at all)
 
+// Preprocessor Definitions
+//when we build our code it's not immediately compiled, it is first sent to - preprocessor (behind-the-scenes tool)
+//preprocessor directives - special instructions we insert into our source file
+//preprocessor modifies our code (not orig, temporary intermediate copy) based on preprocessor directives
+//(modifications sometimes called translations, generated files - translation units
+//once finished generating those copies, w all changes,they are send off for compilation
+
+//preprocessor directives abilities:
+// - different versions of a software from the sane source code
+// - defining reusable code blocks
+// - including code others have written, sometimes called library code, to let us build more advanced features quickly
+// - keep project orginized by splitting between multiple files
+
+// - setting preprocessor definition (such as DEVELOPMENT_BUILD) depends on our IDE
+//in VS: from top menu bar: Project -> "ProjectName" Properties -> C/C++ -> Preprocessor -> Preprocessor Definitions
+//two configurations provided by default - "Debug", "Release"
+//we can create more configurations as needed, each can have its own set of preprocessor definitions (+ other settings), and we can quickly switch between configurations through user interface
+
+//"#ifdef" and "if" key difference:
+//preprocessor directives "#ifdef" analyzed at build time, whilst "if" - at run time
+//most things can only be checked at run time, so "if" statements are generally going to be much common and useful
+//if something doesn't need to be checked at run time - should consider using preprocessor instead
+
+//conditional inclusion two big benefits over "if":
+// - performance: "#ifdef" directive evaluated one time (when we build software), "if" - everytime the function is called, by everyone who runs our soft
+// - security: if we include "secret" functionality in the code for users, "if" won't keep it hidden (quite easy to reverse engineer and see those)
+//w "#indef" instead - the code is entirely removed from what we release
+
+//if we need to provide a preprocessor definition across our whole project, we typically do it through our build tools, but we don't have to
+//we can just define things within our source files
+//for example, we can define flag like this
+//in files where this directive exists - effect equivalent to having set it through tooling
+//#define DEVELOPMENT_BUILD
+
+//thing to note about "#define":
+// - things defined w this directive are typically called - "macros" (eg. DEVELOPMENT_BUILD)
+// - to distinguish macros from other C++ code, we typically use all uppercase names w "_" as a separator
+// - we do not end macros w semi-colons ";" - they're not C++ statements
+// - macros typically defined at or near the top files (!macro is available from the line it was defined until the end of the file)
+
+//text substitution macros allow us to "#define" bocks of code, end then easily insert those elsewhere in our project as needed
+//(it's fairly uncommon that we need to create text replacement macros, just demonstration)
+//#define DEFINE_INT int MyInt{4};
+struct MyType {
+	DEFINE_INT
+	DEFINE_GREET
+	DEFINE_ARG_GREET("Howdy", "a struct object")
+};
+//int main() { DEFINE_INT	//code...	}
+
+//somewhere above we created macro for creating functions, then we use it to add a member function to our MyType strunct, as well as a free function defined above our main()
+DEFINE_GREET
+DEFINE_ARG_GREET("Hi there", "a free function")
+
+// ! - unreal provides a lot of useful utilities in the form of macros, so you're likely using them quite heavily if you're writing C++ in that contex
+//for example, loging into Unreal console is done using two function-like macros, "UE_LOG" and "TEXT"
+//UE_LOG(LogTemp, Error, TEXT("Hello!"))
+
 
 int main() {
 	Level = Level + 1;
@@ -1965,6 +2043,36 @@ int main() {
 	cdwncVampire cdwncOtherVampire{ "other Vampire" };
 	cdwncBattle(&cdwncHunterPlayer, &cdwncOtherVampire);
 	cout << '\n';
+
+	// Preprocessor Definitions
+
+	// - conditional inclusion (determine what code is included in the software we built, dev/user versions)
+	//achieved through wrapping the code we want to conditionaly include between "#ifdef" and "#endif" directives:
+	cout << "\nHello There!";
+#ifdef DEVELOPMENT_BUILD
+	cout << "\nThis is a developer build";
+#endif
+	//the opposite of "#ifdef" is "#ifndef" - will incude code if flag is NOT defined
+#ifndef DEVELOPMENT_BUILD
+	cout << "\nThis is a public build";
+	//we can also use "#elif" and "#else"
+#elif DEMO_BUILD
+	cout << "\nThis is a demo build";
+#else
+	cout << "\nThis is an else public build";
+#endif
+
+	DEFINE_INT
+		cout << "\nMyInt: " << MyInt;
+	
+	MyType MyObject;
+	cout << "\nMyObject.MyInt: " << MyObject.MyInt;
+
+	Greet();
+	MyObject.Greet();
+
+	argGreet();
+	MyObject.argGreet();
 
 
 	return 0; // Function w proclaimed return type should ALWAYS return somithing if else - code is invalid
