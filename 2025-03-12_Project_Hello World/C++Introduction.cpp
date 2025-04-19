@@ -1,3 +1,4 @@
+// Preprocessor Definitions
 #define DEVELOPMENT_BUILD
 
 #define DEFINE_INT int MyInt{4};
@@ -17,6 +18,107 @@ void argGreet() {	\
 	cout << '\n' << Greeting << ", I am " << Name	\
 		<< "\nNice to meet you!\n";	\
 };
+
+// The #include Directive
+
+//C++ comes w a library of code by default - standart library
+//which is added by #include <iostream> directive (inserts code that allows to work w i - input and o - output streams
+//it's what has enabled us to use "cout", and also has been adding the standart library's "string" class to our files
+//"string" class is also available by itself, if we need string (cout not included), we could use directive:
+#include <string>
+
+//#include directive allows us to insert the content from other files (gives ability to separete blocks of code - typically a class - to their own dedicated file)
+//this effectively allows to extend the idea of encapsulation
+//for example
+//#include "Character.cpp" //"file.cpp" instead of < > syntax
+//preprocessor encounters directive - replace directive w contaions of Character.cpp file - code that compile receives will effectively look like this:
+//main.cpp
+//#include <iostream>
+//class Character {
+//	//...
+//};
+//int main() {
+//	Character Player;
+//}
+
+//" " double quotes and < > angle brackets syntax: different format broadly relates to WHERE preprocessor should look for requested files, in most situations
+// - < > - will search within "include directories" we have set for project
+// - " " - will search relative to the current file (where we using #include directive (can't find what we're looking for - fall back to searching include directories < >)
+
+//common convention:
+// - use " " - when including files that are within project
+// - use < > - when including external, "library" files
+
+// - include directories - where exactly to look for files that are located elsewhere
+//in VS: Project Settings -> C/C++ -> Include Directories
+
+//when using #include directive: file we're looking for may not be in the same directory as current file, or in any of our include directories specifically
+//for example, it might be in subdirectory or a parent directory
+//#include file from subdirectory using the / syntax
+//#include "Helpers/Math.cpp" //trying to include Math.cpp which is in a subdirectory Helpers
+
+//navigate up the directory tree using "../" syntax
+//#include "../Physics.cpp" //traverse up one level (include Physics.cpp in the parent directory)
+//#include "../../Math.cpp" //traverse up two levels (include Math.cpp in the grandparent directory)
+
+//combine both techniques
+//below we're trying to navigate into Helpers within the parent directory, to include a Math.cpp stored there
+//#include "../Helpers/Math.cpp"
+//in general, #include directives shouldn't get particulary complex
+//if we frequently have to perform elaborate traversal, it's worth trying to eliminate it (reorganizing our directories or adding new include directoreis in our project settings)
+
+//redefinition errors
+//for example, we have a file containing Character class
+//then creating a Monster class in another file
+//this file referencing Character class, so we #include "Character.cpp" in Monster.cpp
+//idividually all files are perfectly valid, however, if we try to #include them in our main file to use new classes - program will fail to compile
+//#include "Character.cpp"
+//#include "Monster.cpp"
+//C2011: 'inclCharacter': 'class' type redefinition
+// - from Character.cpp
+//class inclCharacter {};
+// - from Monster.cpp
+//class inclCharacter {};
+//class inclMonster : public inclCharacter {};
+//int main() { ... }
+
+// - indirect dependencies
+//to fix previous example we can delete #include "Character.cpp" from our main.cpp, but it is generaly not a good idea to rely on this
+//if one of our files have dependency it's much better to be explicit and clear about that (if someone else opens our file - it might be quite dificult to understand where Character comes from, or why code works at all)
+//worse, if someone makes seemingly innocuous change in one file - it could generate cryptic error messages in files they haven't changed
+
+// - header guards (using #ifdef and #define)
+//we can protect ourselfs from situations as above by using the conditional inclusion techniques
+//this pattern commonly called - header guard (mostly used w header files)
+//by combining #ifndef w a #define directive we can ensure that a block of code is only included once in any file
+//header guard: typically contents of the file will be between the #ifndef and #endif directives
+
+// - after evaluating all of our #include directives, preprocessor will see this:
+//in Character.cpp
+#ifndef CHARACTER
+#define CHARACTER
+class inclCharacter {};
+#endif //in Monster.cpp all of the above and
+class inclMonster : public inclCharacter {};
+//next it's going to evaluate our conditional inclusion directives (from top to bottom)
+//it is conventional to define a meaningful name (CHARACTER directive for Character.cpp), but any unique name would've worked
+
+// - #pragma once directive (single preprocessor directive (header guard) that can replace #ifndef #define #endif
+//we can simplify previous example to this:
+#pragma once
+class prgmCharacter {
+	// class definition here
+};
+//#pragma once is not a part of C++ standart (but included by every modern build tool)
+//we can use either full conditional inclusion approach or #pragma once shortcut (different devs/companies different preferences on what to use)
+//Google Style Guide: Do not use #pragma once [..] All header files should have #define quards to prevent multiple inclusion
+//Unreal Engine Coding Standart: All headers should protect against multiple includes with the #pragma once directive. Note that all compilers we use support #pragma once
+
+//our example above only applied header guards to the Character.cpp file, but we don't know how our code files are going to be included in the future
+//so it is recommended to include header guards proactively
+
+// - C++20 standart introduced modules, they use C++ "import" syntax rather then "#include", eventually modules will supersede "#include" directives (but for now it's more important to understand how #include works)
+
 
 #include <iostream>
 using namespace std; //should get rid of it, though don't know where exacly everywhere is, for using "std::" instead
@@ -1209,6 +1311,7 @@ public:
 //w polymorphism our combat system gets richer and more dynamic (w/out its code needing to get more complex or even change at all)
 
 // Preprocessor Definitions
+
 //when we build our code it's not immediately compiled, it is first sent to - preprocessor (behind-the-scenes tool)
 //preprocessor directives - special instructions we insert into our source file
 //preprocessor modifies our code (not orig, temporary intermediate copy) based on preprocessor directives
@@ -1265,6 +1368,13 @@ DEFINE_ARG_GREET("Hi there", "a free function")
 // ! - unreal provides a lot of useful utilities in the form of macros, so you're likely using them quite heavily if you're writing C++ in that contex
 //for example, loging into Unreal console is done using two function-like macros, "UE_LOG" and "TEXT"
 //UE_LOG(LogTemp, Error, TEXT("Hello!"))
+
+// The #include Directive
+
+//#include directive - second aspect of preprocessor, gives us a way to add additional code to our files
+//when we build our project, preprocessor will see #include directive and will replace it with code that is stored in a different location
+// - when project gets bigger - allows to arrange code across multiple files
+// - gives access to libraries (code and features that other developers/organizations have written
 
 
 int main() {
@@ -2052,7 +2162,7 @@ int main() {
 #ifdef DEVELOPMENT_BUILD
 	cout << "\nThis is a developer build";
 #endif
-	//the opposite of "#ifdef" is "#ifndef" - will incude code if flag is NOT defined
+	//the opposite of "#ifdef" is "#ifndef" - will incude code if flag is NOT defined (#ifndef - if not defined)
 #ifndef DEVELOPMENT_BUILD
 	cout << "\nThis is a public build";
 	//we can also use "#elif" and "#else"
@@ -2073,6 +2183,13 @@ int main() {
 
 	argGreet();
 	MyObject.argGreet();
+
+	// The #include Directive
+
+	//C2011: 'inclCharacter': 'class' type redefinition
+	inclCharacter inclPlayer;
+	inclMonster inclEnemy;
+	//after all of those shenanigans it works
 
 
 	return 0; // Function w proclaimed return type should ALWAYS return somithing if else - code is invalid
