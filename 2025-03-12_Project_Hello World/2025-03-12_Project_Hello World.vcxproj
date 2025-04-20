@@ -20,6 +20,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="C++Introduction.cpp" />
+    <ClCompile Include="crcldCharacter.cpp" />
+    <ClCompile Include="hdrCharacter.cpp" />
+    <ClCompile Include="hdrSword.cpp" />
+    <ClCompile Include="UEcodingStandart.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="crcldCharacter.h" />
+    <ClInclude Include="crcldSword.h" />
+    <ClInclude Include="hdrCharacter.h" />
+    <ClInclude Include="hdrSword.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

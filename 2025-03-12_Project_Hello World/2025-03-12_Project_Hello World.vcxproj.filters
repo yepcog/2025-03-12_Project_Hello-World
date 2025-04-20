@@ -18,5 +18,31 @@
     <ClCompile Include="C++Introduction.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="UEcodingStandart.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hdrSword.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hdrCharacter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="crcldCharacter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="hdrSword.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hdrCharacter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="crcldSword.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="crcldCharacter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

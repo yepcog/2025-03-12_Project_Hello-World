@@ -1376,6 +1376,164 @@ DEFINE_ARG_GREET("Hi there", "a free function")
 // - when project gets bigger - allows to arrange code across multiple files
 // - gives access to libraries (code and features that other developers/organizations have written
 
+// Header Files
+
+// - function declaration (prototype: return type, name, parameter types)
+int ExampleAdd(int x, int y);
+// - function definition (return type, name, parameter types + implementation: function body, where its behavior is implemented)
+int ExampleAdd(int x, int y) {
+	return x + y;
+}
+//similar w class functions
+// - declaration
+class ExampleClass {
+	void ExampleFunction(int Damage);
+};
+// - definition
+void ExampleClass::ExampleFunction(int Damage) {
+	// Implementation
+}
+
+//UEcodingStandart
+//(if one source file wants to use something that is defined in another source file - simply forward declare it, rather then #include)
+void UEcodingStandart();
+//in order to work, #include <iostream> HAS to be added in UEcodingStandart.cpp anyway (above #pragma once ?), just for compiler to know where to find couts
+//another thing, to add a new item (.cpp etc.) in VS: top bar Project -> Add New Item/Add Existing Item
+
+// - class declaration
+//w class situation is a little more complex: any functions, variables on that class need to be forward declared too
+//class hdrSword {
+//public:
+	//void hdrEquip();
+	//void hdrUnequip();
+	//int hdrGetDamage();
+//};
+//class hdrCharacter {
+//public:
+	//void hdrEquip(hdrSword* Weapon) {
+		//mWeapon->hdrUnequip();
+		//mWeapon = Weapon;
+		//mWeapon->hdrEquip();
+	//}
+
+	//void hdrAttack() {
+		//int WeaponDamage{ mWeapon->hdrGetDamage() };
+		//...
+	//}
+
+//private:
+	//hdrSword* mWeapon;
+//};
+//scattering forward declarations like this around code base any time class is used - gets messy
+//convention: instead declare class in a single file and then #include it wherever it is needed
+//file where we do this declaration is called - header file
+
+// - by convention we give our header files .h or .hpp extentions
+//typically, each header file - declaration for only ONE class
+// - for example, our Sword class would be declared in a file called - Sword.h
+// - we then #include our Sword.h wherever needed (applies to the source file, Sword.cpp, where we provide definitions for all these functions
+// - we also #include our Sword.h within header of any other class that needs it (Character.h)
+// - it's not necessary to go "all in" on the separation of declarations and definitions
+//it's common for the definitions of large functions to be moved out of the header, smaller - sometimes left in place (Sword.h: typicall for getter functions, that can be defined within 1 - 2 lines of code)
+
+//headers instead of everithing in cpp:
+// - compilation speed - headers typically contain only declarations, which are much faster to process then full implementations (including source files would dramatically slow down compilation)
+// - code organization - headers serve as a "contract" or "interface", they tell other devs what class can do w/out showing how it does it (easier to understand and use)
+// - technical requirements - sometimes u have no choice, when two classes reference each other, u need to separete declarations from definitions to avoid circular dependencies
+
+//workflow tips (in VS):
+// - Ctrl + Click on a function name - navigate between declaration and definition
+// - "peek" w Alt + F12 - at the definition from declaration, or vice versa, allows to open and edit both in the same tab
+// - Right-clicking a function name - opens menu of additional tools, such as renaming the function or changing its parameter types in both locations at once
+
+// - specifiers in class function definitions:
+//when declarations and definitions are split into multiple files - these specifiers only need to be used w the declaration (virtual, override)
+//definitions doesn't need to specify override, virtual, similar, it also doesn't need to specify where the function is public, private or protected (those details just within declarations)
+//using this specifiers outside of a class definition will result in a compilation error
+
+// - linking
+#include "hdrCharacter.h"
+//this code works, but it might not be entirely obvious why
+//even though main.cpp isn't aware that Character.cpp exists, the compiler is aware, because when we add/remove files from our project - IDE keeps track of that
+//(every time we compile - IDE sends that list of files to the compiler)
+
+//within VS files are tracked by "vcxproj" files within our project directory - these are plain text files in the XML format
+//among other things they keep track of the group of files to be send to the compiler every build
+//result of that process: compiler outputs two files - result of compiling Character.cpp, result of compiling main.cpp (sometimes called - object files, typically .obj extension)
+//once all object files are created - they're sent to the linker - to be combined into cohesive package
+
+//within main.obj compiler left a temporary marker of Character::Greet(), these sometimes called - external symbols
+//they're instructions to linker: Character::Greet() is probably in another file - when u find it - link it here
+//linker: scans through all object files for external symbols and resolves them w correct connection (definition not found - throws an error)
+//compiler errors typically are prefixed w C, whilst linker - LNK
+
+//linker error example (declaring a class function but never defining it):
+class lnkMonster {
+public:
+	//void lnkTaunt(); //LNK2019: unresolved external symbol ... referenced in function main; LNK1120: 1 unresolved externals
+	void lnkTaunt() {}
+};
+
+// - incomplete types (using forward declarations - compiler has limited info about the type, which can restrict how it's used in the code)
+//knowledge on header files doesn't change that we could declare classes w simple class MyClass; statement (in main.cpp), w/out #include full header file
+class incmpltSword;
+class incmpltCharacter {
+public:
+	// - if we're only referencing the class in scenarios like var types and function return types/parameters - incomplete type is sufficient:
+	incmpltSword* incmpltGetWeapon() {
+		return mWeapon;
+	}
+	void incmpltSetWeapon(incmpltSword* Weapon) {
+		mWeapon = Weapon;
+	}
+
+private:
+	incmpltSword* mWeapon;
+};
+//header includes declarations for all variables and functions, but in some cases compiler doesn't need to know all the details, it just needs to know that Sword is a class
+//as such we can reduce compilation times even further - by not including header files unnecessarily
+
+// - if we need to access members of that type - need to switch back to including header
+#include "hdrSword.h"
+class swtchCharacter {
+public:
+	int swtchGetDamage() {
+		//this won't work w an incomplete type
+		return mWeapon->Damage;
+	}
+
+private:
+	hdrSword* mWeapon;
+};
+
+// - circular dependencies
+//applies to headers too, example: Character - requires Sword and Sword - requires Character
+//having them #include each others headers would create a circular dependency
+// Sword.h
+//#pragma once
+//#include "Character.h"
+
+// Character.h
+//#inlude "Sword.h"
+//and prevent either of them from being used
+
+//we can break this by forward-declaring one (or both) of them instead:
+// Sword.h
+//class Character;
+
+// Character.h
+//class Sword;
+//this change has introduced an error w GetDamage() function
+
+//we could re-add #include directive (we only needed to remove one to remuve circular dependency)
+//however - that's not always an option, incomplete types are never an unsolvable problem in header file anyway
+//we can just move the definition to a source file (Character.cpp) and import the full header there
+
+//as w many things - preference for header files vs forward declarations and incomplete types is mixed, recommendations defer:
+//Google Style Guide: Avoid using forward declarations where possible. Instead, include the headers you need.
+//Unreal Engine Coding Standart: Forward declarations are preferred to including headers
+//either way this technique is very common and we'll see it a lot (graphics and game engines)
+
 
 int main() {
 	Level = Level + 1;
@@ -2190,6 +2348,17 @@ int main() {
 	inclCharacter inclPlayer;
 	inclMonster inclEnemy;
 	//after all of those shenanigans it works
+
+	// Header Files
+
+	UEcodingStandart();
+
+	// - linking
+	hdrCharacter hdrPlayer;
+	hdrPlayer.hdrGreet();
+
+	lnkMonster lnkEnemy;
+	lnkEnemy.lnkTaunt();
 
 
 	return 0; // Function w proclaimed return type should ALWAYS return somithing if else - code is invalid
