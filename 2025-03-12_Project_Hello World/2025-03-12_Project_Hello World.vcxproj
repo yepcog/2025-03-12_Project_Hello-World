@@ -19,17 +19,23 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="addnSquare.cpp" />
     <ClCompile Include="C++Introduction.cpp" />
     <ClCompile Include="crcldCharacter.cpp" />
     <ClCompile Include="hdrCharacter.cpp" />
     <ClCompile Include="hdrSword.cpp" />
+    <ClCompile Include="odrGeometry.cpp" />
     <ClCompile Include="UEcodingStandart.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="addnCircle.h" />
+    <ClInclude Include="addnGeometry.h" />
+    <ClInclude Include="addnSquare.h" />
     <ClInclude Include="crcldCharacter.h" />
     <ClInclude Include="crcldSword.h" />
     <ClInclude Include="hdrCharacter.h" />
     <ClInclude Include="hdrSword.h" />
+    <ClInclude Include="odrGeometry.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

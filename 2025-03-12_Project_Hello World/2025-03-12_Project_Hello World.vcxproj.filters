@@ -30,6 +30,12 @@
     <ClCompile Include="crcldCharacter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="odrGeometry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="addnSquare.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hdrSword.h">
@@ -42,6 +48,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="crcldCharacter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="odrGeometry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="addnSquare.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="addnCircle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="addnGeometry.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

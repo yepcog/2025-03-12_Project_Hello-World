@@ -119,6 +119,86 @@ class prgmCharacter {
 
 // - C++20 standart introduced modules, they use C++ "import" syntax rather then "#include", eventually modules will supersede "#include" directives (but for now it's more important to understand how #include works)
 
+// Namespaces
+//we can wrap sections of our code insida a namespace:
+namespace nmspcGeometry {
+	//we can populate namespaces w classes, functions, variables and any constructs we've seen before
+	float nmspcAdd(float x, float y) {
+		return x + y;
+	}
+
+	float nmspcPi{ 3.14 };
+
+	class nmspcSquare {
+		float nmspcSideLength{ 5.0 };
+		float nmspcArea() {
+			return nmspcSideLength * nmspcSideLength;
+		}
+	};
+
+	float nmspcCircumference(float Diameter) {
+		//we can acces Pi here as we're in the same scope/namespace
+		return Diameter * nmspcPi;
+	}
+
+	//namespaces can be nested inside other namespaces
+	namespace nmspcConstant {
+		float cnstPi{ 3.14f };
+	}
+	//to access this identifiers we can use scope resolution operator :: multiple times
+	//example: int main() { Geometry::Add(10, Geometry::Constant::Pi); }
+}
+//syntax for defining a new namespace: namespace SomeNamespace {};
+
+//as usual w braces { } namespaces define a new scope, expressions within namespace can access other namespace members as usual
+//to access namespace members from outside the namespace - we need "Scope Resolution Operator", which has to colons "::"
+//example: int main() { Geometry::Add(10, Geometry::Pi); }
+
+//when to use namespace or class:
+// - main differences: classes can create objects, while namespaces - not
+// - doesn't make sence to create an object with a type of Geometry, so for this type of organization - we can create namespaces instead
+//c++ allows class members to be static, however, using namespaces tends to be the preferred approach in c++
+
+// - one definition rule (ODR)
+//once we create namespace and #include it in other files - we'll quickly begin to see linker errors (symbols already being defined)
+//to solve this - we can split our namespace into a header file and source file (in much the same way we have shown w classes)
+//declarations remain in Geometry.h whilst we move definitions to Geometry.cpp
+
+// - "extern" keyword: when we intend to forward-declare variable that is defined externaly (in other file) - we need to clarify that intent by adding the "external" keyword
+//when declaring a function that will be defined externaly - compiler can implicitly understand that's what we're doing
+
+// - "inline" keyword: as of C++17 we also have the option of marking namespace members "inline" rather then moving their definition to a dedicated file
+//if the compiler receives multiple definitions of an "inline" member - it chooses one, discards the others
+//(intent to specifically solve multiple definitions caused by #include directive)
+
+// - why class declarations not infringe on the one-definition rule
+//when we define a class member (var) in this way - variable is not technically part of the class (it's simply a recipe for creating instances of a variable that will exist on objects created using the class
+//namespaces: we're generating single variable (accessible using specific identifier ::), there will only ever be one instance of that variable in our program - ie can only have one definition
+
+// - adding namespaces: in big projects they can get quite large (include multiple classes, for example), as such - it's common for namespace contents to span multiple files
+#include "addnSquare.h"
+#include "addnCircle.h"
+//int main() { Geometry::Circle MyCircle; Geometry::Square MySquare; }
+//when we're providing a full declaration of our namespace within a header file (Geometry.h), we can alternatively provide class definitions by including that header file and then using ::
+//Circle.h: #include "Geometry.h" class Geometry::Circle {};
+//when our class within a namespace - source files for that class can provide function definitions using either: namespace syntax or the :: operator
+
+// - anonymous namespaces
+//example: global variable Pi (main.cpp - float Pi; int main() {}), if we create a global Pi variable in another file (odrGeometry.cpp - float Pi;)
+//our program will no longer link correctly (LNK2005: "..." already defined in ...) - this is again violation of the one-definition rule
+//if we intent to forward-declare a variable that will be defined in some other file, we can add the "extern" keyword:
+//Geometry.cpp: float Pi{ 3.14 };
+extern float otherfPi;
+//if we intent to create a variable that we can use anywhere in the current file, without affecting any other file - we can use anonymous namespace
+//anonymous namespace - namespace w/out a name: namespace { ... } (identifiers within anonymous namespace are only available to the same source file where namespace exists
+//we can think of an anonymous namespace as a "private" section of a file
+//odrGeometry.cpp: namespace { float Pi{ 3.1415 }; } float GetPi() { return Pi; }
+namespace {
+	float annmsPi{ 3.14 };
+}
+//forward-declaring a function defined in odrGeometry.cpp
+float annmsGetPi();
+
 
 #include <iostream>
 using namespace std; //should get rid of it, though don't know where exacly everywhere is, for using "std::" instead
@@ -1534,6 +1614,8 @@ private:
 //Unreal Engine Coding Standart: Forward declarations are preferred to including headers
 //either way this technique is very common and we'll see it a lot (graphics and game engines)
 
+// Namespaces
+
 
 int main() {
 	Level = Level + 1;
@@ -2359,6 +2441,19 @@ int main() {
 
 	lnkMonster lnkEnemy;
 	lnkEnemy.lnkTaunt();
+
+	// Namespaces
+	nmspcGeometry::nmspcAdd(10, nmspcGeometry::nmspcPi);
+	nmspcGeometry::nmspcAdd(10, nmspcGeometry::nmspcConstant::cnstPi);
+	std::cout << '\n' << nmspcGeometry::nmspcConstant::cnstPi;
+
+	addnGeometry::addnCircle MyaddnCircle;
+	addnGeometry::addnSquare MyaddnSquare;
+
+	std::cout << "\nPi as defined in some other file: " << otherfPi;
+
+	std::cout << "\nPi in main.cpp: " << annmsPi
+		<< "\nPi in odrGeometry.cpp: " << annmsGetPi();
 
 
 	return 0; // Function w proclaimed return type should ALWAYS return somithing if else - code is invalid
