@@ -199,6 +199,8 @@ namespace {
 //forward-declaring a function defined in odrGeometry.cpp
 float annmsGetPi();
 
+// Enums
+
 
 #include <iostream>
 using namespace std; //should get rid of it, though don't know where exacly everywhere is, for using "std::" instead
@@ -1616,6 +1618,48 @@ private:
 
 // Namespaces
 
+// Enums
+//enumerated type (enumerations, enums) - user-defined type, enums allow us to represent a set of predefined values
+enum class enmFaction {
+	Goblin,
+	Undead,
+	Troll,
+	Dragon
+};
+
+// - using enums
+//variables that store one of these values (example above) will have Faction type, we can access the options using :: scope resolution operator
+//enmFaction enmEnemyType{ enmFaction::Dragon };
+
+bool enmIsTroll(enmFaction SelectedFaction) {
+	return SelectedFaction == enmFaction::Troll;
+}
+
+class enmVampire {
+public:
+	enmFaction enmGetFaction() { return mFaction; }
+
+private:
+	//to declare and initiate an enum variable in a class: enumName mVariable { enumName::variableName };
+	enmFaction mFaction{ enmFaction::Undead };
+};
+//enmVampire enmEnemy;
+//enmFaction enmEnemyFaction { enmEnemy.enmGetFaction() };
+
+// - advantages of enums
+//we could've used for variables some other type - for example, int or string
+// - if we use int: code becomes quite difficult to follow (have to remember what the numbers mean)
+// - if we use string: they consume more memory and network resources than int, also slower to compare
+//comparing: 3 == 3 - can be done in a single operation
+//"string" == "string" - every character needs to be compared, so would require 6 checks + additional one to ensure there are no further characters
+//enums are faster to compare, because, behind the scenes, they're just stored as integers by default
+//enum syntax is simply compiler syntax to let us attach some semantic meaning to a collection of integers
+
+//enums: combine the performance of integers with the readability of strings, additionaly they have even more advantages:
+// - compiler will only permit valid values (no risk of introducing a bug by mistyping string or using a number that doesn't correspont to any value)
+// - because enum defines what possible options are, our tools can be helpful: code editor will generaly provide auto-complete support
+//and as soon as we type SomeEnum::,our IDE will likely display range of available values
+
 
 int main() {
 	Level = Level + 1;
@@ -2454,6 +2498,12 @@ int main() {
 
 	std::cout << "\nPi in main.cpp: " << annmsPi
 		<< "\nPi in odrGeometry.cpp: " << annmsGetPi();
+
+	// Enums
+	enmFaction enmEnemyType{ enmFaction::Dragon };
+
+	enmVampire enmEnemy;
+	enmFaction enmEnemyFaction { enmEnemy.enmGetFaction() };
 
 
 	return 0; // Function w proclaimed return type should ALWAYS return somithing if else - code is invalid
