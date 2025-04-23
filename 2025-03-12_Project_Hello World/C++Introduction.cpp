@@ -201,6 +201,8 @@ float annmsGetPi();
 
 // Enums
 
+// The using Keyword
+
 
 #include <iostream>
 using namespace std; //should get rid of it, though don't know where exacly everywhere is, for using "std::" instead
@@ -1660,6 +1662,93 @@ private:
 // - because enum defines what possible options are, our tools can be helpful: code editor will generaly provide auto-complete support
 //and as soon as we type SomeEnum::,our IDE will likely display range of available values
 
+// The using Keyword
+//using namespace std; - this "using" statement was necessary every time we used "cout" and "string" (standart library functionality, including this identifiers, is in the "std" namespace)
+//by adding "using namespace std;" declaration we have the option of removing std:: prefix
+//std::string usngString{ "\nUwU" };
+//std::cout << usngString;
+//we can use "using namespace" declaration w any namespace (not just "std")
+namespace usngMaths {
+	float usngPi{ 3.14f };
+}
+using namespace usngMaths;
+//cout << '\n' << usngPi;
+
+//we can also restrict using statement that covers the entire "std" namespace to just specific identifiers
+//for example, to use it w "std::cout" and "std::string":
+using std::cout, std::string;
+
+// - recommended caution around the "using namespace" statements (particulary in the global scope)
+//namespaces exists to help in code organization - a "using namespace" declaration effectively subverts this organization (so it's probably better to not use it)
+//if we have a using namespace declaration that is scoped to an entire file, that will also affect any file that includes it
+//ways we can get "using" benefits whilst reducing many of the drawbacks:
+// - restrict them to the specific identifiers, eg. using std::string;
+// - reduce the scope of the "using" statement
+
+// - as an alternative to global "using" declarations we can place them inside blocks - usually function bodies or other namespaces
+//"using" declaration inside any block - follows the normal block scoping rules of other statements
+//#include <iostream>
+void usngHello() {
+	//limited to just this function block
+	using namespace std;
+	cout << "\nHello";
+}
+//void World() { cout << "World"; } - error C2065: 'cout': undeclared identifier
+
+//C++20 using enum statements
+//by adding a "using enum" statement - we can use the same enum repeatedly in the same way as we were using namespaces
+//example:
+//enum class Faction { Human, Elf, Undead };
+//Faction MyFaction { Faction::Human };
+//w using enum statement:
+enum class usngFaction { Human, Elf, Undead };
+//using enum usngFaction;
+//usngFaction usngMyFaction{ Human };
+//note: this is relatively recent addition to the language, included as part of the C++20 spec., in projects w older compilers - will not be available
+
+// - type aliasing - allows to create pseudonym for a type we want to use in our code:
+using usnginteger = int;
+//int main() { integer MyNumber{41}; }
+//main uses for type aliases:
+// - switching types at compile time
+//for example, perhaps we want the specific type of integer we're using to be different between platforms
+//below we using fixed-width integers - int64_t, int32_t - they specify exactly how many bits they use, rather then letting platform decide
+#pragma once
+//<cstdint> - C standart library integer support header
+#include <cstdint>
+
+#ifdef PLATFORM_64BIT
+using usnginteger = std::int64_t;
+#else
+using usnginteger = std::int32_t;
+#endif
+//then we include this file in all our other files, and use "integer" alias like any other type
+// - aliasing complex types
+//in C++ types can get pretty complex:
+
+//std::unordered_map<
+	//Enums::ItemType, std::vector<Item&>
+//> Inventory;
+
+//scattering a type like this would get very messy, so we can use a using statement to create a simple alias:
+
+//using Items = std::unordered_map<
+	//Enums::ItemType, std::vector<Item&>>;
+class usngCharacter {
+public:
+	//void usngSetInventory(Items Inventory) {
+		//mInventory = Inventory;
+	//}
+	//Items usngGetInventory() { return mInventory; }
+private:
+	//Items mInventory;
+};
+
+// - "typedef" - another way to create type aliases
+typedef int integer;
+//int main() { integer MyNumber; }
+//"typedef" syntax was inherited from the C language but is still commonly used, we tend to stick w using, as it is compatible w templates (advanced C++ feature)
+
 
 int main() {
 	Level = Level + 1;
@@ -2504,6 +2593,14 @@ int main() {
 
 	enmVampire enmEnemy;
 	enmFaction enmEnemyFaction { enmEnemy.enmGetFaction() };
+
+	// The using Keyword
+	std::string usngString{ "\nUwU" };
+	std::cout << usngString;
+	//equivalent: std::cout << Maths::Pi;
+	cout << '\n' << usngPi;
+
+	usnginteger usngMyNumber{ 41 };
 
 
 	return 0; // Function w proclaimed return type should ALWAYS return somithing if else - code is invalid
