@@ -203,6 +203,8 @@ float annmsGetPi();
 
 // The using Keyword
 
+// Dynamic Arrays using std::vector
+
 
 #include <iostream>
 using namespace std; //should get rid of it, though don't know where exacly everywhere is, for using "std::" instead
@@ -1749,6 +1751,130 @@ typedef int integer;
 //int main() { integer MyNumber; }
 //"typedef" syntax was inherited from the C language but is still commonly used, we tend to stick w using, as it is compatible w templates (advanced C++ feature)
 
+// Dynamic Arrays using std::vector
+
+//data structures - containers for storing collections of objects and which data structure we should use depends on our specific requirements
+//most common data structure - the dynamic array
+//arrays are contiguous blocks of memory (big enough to store multiple objects in sequence)
+
+//two categories of arrays: static arrays and dynamic arrays
+// - static arrays: we need to know at a compile time how much space we need
+//if we create a static array for holding 5 things, and we need to add 6th - that's not going to happen
+// - dynamic arrays: can resize themselves at a run time
+//if we need to add 6th thing - dynamic array will do a load of memory management and related tasks to make itself bigger (all behing the scenes from our perspective)
+
+//std::vector - standart library's implementation of dynamic array
+//to use it we need to #include it, then declare it by giving it a name and specify the type of objects it will contain within angled brackets < >)
+//example:
+#include <vector>
+std::vector<int> dnmcaMyNumber;
+
+// if we see < > - we're typically using an advanced C++ feature called - templates
+//templates allow classes and functions to be written without specifying all of the data types that class/function will be using
+//std:vector can store a collection of any type of object, we only need to provide the type we want to store between the chevrons
+//this type is reffered to as - template argument
+//templates allow classes and functions to be compatible with types that aren't known/don't exist at the time the template was written
+//example:
+struct dnmcaCustomType {
+	//...
+};
+//so we can use std::vector w custom types
+std::vector<dnmcaCustomType> dnmcaMyVector;
+
+//we can provide a std::vector w some initial values
+std::vector<int> dnmcaValueVectorA{ 1,2,3,4,5 };
+//when initializing the values at the same time we declare the array - we can optionaly remove the template argument (compiler can infer type based on provided objects type)
+//to do this compiler is using Class Template Argument Deduction (CTAD)
+std::vector dnmcaValueVectorB{ 1,2,3,4,5 };
+
+// - accesing array items
+//we can access the members of our array w the - subscript operator (which using [ ] syntax: VectorName[x], where x - index of the element we want to access)
+//index of an element - position w/in an array, in most languages zero-based (meaning: we start counting from 0)
+//example:
+int dnmcaFirstElement{ dnmcaValueVectorA[0] };
+int dnmcaSecondElement{ dnmcaValueVectorA[1] };
+int dnmcaLastElement{ dnmcaValueVectorA[4] };
+//index can be derived from any expression that evaluates to an integer
+int dnmcaCalculateIndex() { return 2 + 1; }
+
+// - adding and removing items
+//typically we want to add items to the back of arrays, as this has performance benefits over adding them to the start
+//ways of adding objects:
+// - pushing - an object involves moving or copying an existing object into the container
+// - emplacing - an object involves creating a new object directly within the container
+//creating an object in place has performance benefits over creating it elsewhere and then moving it (therefore, where possible, we should prefer emplacing over pushing)
+//w std::vector we adding items to the back, so the respective function are called: push_back() and emplace_back()
+
+// - push_back():
+class dnmcaCharacter {
+public:
+	dnmcaCharacter(const std::string& Name)
+		: Name(Name) {}
+	std::string Name;
+};
+
+class dnmcamCharacter {
+public:
+	dnmcamCharacter(std::string Name) : mName{ Name } {}
+
+	std::string dnmcamGetName() { return mName; }
+	
+	void dnmcamSetName(std::string Name){
+		mName = Name;
+	}
+
+private:
+	std::string mName;
+};
+
+// - storing complex types in arrays
+//we can store pointers and references in arrays too:
+// - a collection of characters
+std::vector<dnmcaCharacter>;
+// - a collection of character pointers
+std::vector<dnmcaCharacter*>;
+// - a collection of const character references
+std::vector<const dnmcaCharacter&>;
+//arrays can also store other arrays (creates "multidimensional arrays")
+//for example, 3x3 grid could be represented as an array of 3 rows, each row beaing an array of 3 items:
+std::vector<std::vector<int>> dnmcaGrid{ {
+	{1, 2, 3},
+	{4, 5, 6},
+	{7, 8, 9}
+} };
+
+// - type aliases - we can add a "using" statement to alias complex types:
+using usngdaGrid = std::vector<std::vector<int>>;
+usngdaGrid usngdaMyGrid{ {
+	{1, 2, 3},
+	{4, 5, 6},
+	{7, 8, 9}
+} };
+
+// - passing arrays to functions
+//we can treat a collection of objects like any other value
+using dnmcafGrid = std::vector<std::vector<int>>;
+void dnmcafLogTopLeft(dnmcafGrid GridToLog) {
+	std::cout << "\nTop Left: " << GridToLog[0][0];
+}
+//as w any other parameter, arrays are - passed by value, by default
+//performance implications are particularly important here, as copying a collection of objects is inherently more expencive then copying a single object
+// - we can pass by reference in the usual way, w or w/out const:
+void dnmcafLogBottomRight(const dnmcafGrid& GridToLog) {
+	std::cout << "\nBottom Right: " << GridToLog[2][2];
+}
+void dnmcafSetBottomRight(dnmcafGrid& GridToLog, int Value) {
+	GridToLog[2][2] = Value;
+}
+// - we can also generate and use pointers in the normal way
+void dnmcafLogCenter(const dnmcafGrid* GridToLog) {
+	//right, precedence
+	std::cout << "\nCenter: " << (*GridToLog)[1][1];
+}
+void dnmcafSetCenter(dnmcafGrid* GridToLog, int Value) {
+	(*GridToLog)[1][1] = Value;
+}
+
 
 int main() {
 	Level = Level + 1;
@@ -2601,6 +2727,183 @@ int main() {
 	cout << '\n' << usngPi;
 
 	usnginteger usngMyNumber{ 41 };
+
+	// Dynamic Arrays using std::vector
+	std::vector dnmcaExpressionVector{
+		"First", "Second", "Third", "Fourth"
+	};
+	//log out the element at index 0
+	std::cout << '\n' << dnmcaExpressionVector[3 - 3]; // First
+	//log out the element at index 1
+	int dnmcaIndex{ 1 };
+	std::cout << '\n' << dnmcaExpressionVector[dnmcaIndex]; // Second
+	//log out the element at index 3
+	std::cout << '\n' << dnmcaExpressionVector[dnmcaCalculateIndex()]; // Fourth
+
+	// - array size: refers to the number of elements it is currently contains (sometimes - length of the array)
+	//size() function - returns the current size of our std::vector (returns number, NOT index)
+	std::cout << "\nSize: " << dnmcaExpressionVector.size(); // 4
+	//we can get last element by applying this arithmetic w/in subscript operator [ ] or by using the - back() function
+	std::cout << "\nLast Element: "
+		<< dnmcaExpressionVector[dnmcaExpressionVector.size() - 1];
+	//equivalently:
+	std::cout << "\nLast Element: "
+		<< dnmcaExpressionVector.back();
+
+	// - push_back():
+	dnmcaCharacter dnmcaLegolas{ "Legolas" };
+	//if an item was already constructed and we want to add it to the back of our array:
+	std::vector<dnmcaCharacter> dnmcaCharacterVector;
+	dnmcaCharacterVector.push_back(dnmcaLegolas);
+
+	std::cout << "\nFirst Character: "
+		<< dnmcaCharacterVector[0].Name;
+
+	//constructing objects using - emplace_back():
+	//arguments we call emplace_back() w - will be passed to the constructor of the ibject type the vector stores
+	dnmcaCharacterVector.emplace_back("Aragorn");
+	std::cout << "\nSecond Character: "
+		<< dnmcaCharacterVector[1].Name;
+
+	//removing objects using - erase()
+	//erase method requires we provide an iterator, which is slightly more advanced then basic index
+	//for now: we can get an iterator corresponding to a std::vector index by using - MyVector,begin() + x, where x is the index
+	//example:
+	dnmcaCharacterVector.emplace_back("Gandalf");
+	dnmcaCharacterVector.erase(dnmcaCharacterVector.begin() + 1);
+	//the size() is now reduced by 1 and all the objects that were after erased element get moved by one position to the left to fill in the gap
+	std::cout << "\nSecond Character is now: "
+		<< dnmcaCharacterVector[1].Name;
+
+	// - modifying array items
+	//we can modify std::vector in usual ways:
+	std::vector dnmcaModificationVector{ 1,2,3,4,5 };
+	std::cout << "\nSecond number: "
+		<< dnmcaModificationVector[1];
+	// - can replace the object at a given index using assignemnt operator =
+	dnmcaModificationVector[1] = 41;
+	std::cout << "\nSecond number: "
+		<< dnmcaModificationVector[1];
+	// - can also call functions (including operators) on our objects as needed
+	std::vector<dnmcamCharacter> dnmcamVector;
+	dnmcamVector.emplace_back("Roderick");
+
+	std::cout << "\nFirst character: "
+		<< dnmcamVector[0].dnmcamGetName();
+	dnmcamVector[0].dnmcamSetName("Anna");
+	std::cout << "\nFirst character: "
+		<< dnmcamVector[0].dnmcamGetName();
+
+	std::cout
+		<< "\nTop Left: " << dnmcaGrid[0][0];
+	std::cout
+		<< "\nBottom Right: " << dnmcaGrid[2][2];
+	std::cout
+		<< "\nCenter: " << dnmcaGrid[1][1];
+
+	//below, we pass a collection to a function
+	dnmcafGrid dnmcafMyGrid{ {
+		{1, 2, 3},
+		{4, 5, 6},
+		{7, 8, 9}
+	} };
+
+	dnmcafLogTopLeft(dnmcafMyGrid);
+	dnmcafSetBottomRight(dnmcafMyGrid, 41);
+	dnmcafLogBottomRight(dnmcafMyGrid);
+	dnmcafSetCenter(&dnmcafMyGrid, 69);
+	dnmcafLogCenter(&dnmcafMyGrid);
+	std::cout << '\n';
+
+	// - iteration using a for loop
+	//common task we have when working w arrays is to perform some action on every object in the collection, we can do this w a for loop:
+	std::vector dnmcaTinyVector{ 1,2,3 };
+	//i - starts from 0, so it can represent an index for array in the loop
+	for (int i{ 0 }; i < dnmcaTinyVector.size(); ++i) {
+		//my addition, prefer dots at the end, break as well, just to be sure nothing goes to infinity and beyond
+		if (i == dnmcaTinyVector.size() - 1) {
+			std::cout << dnmcaTinyVector[i] << ". ";
+			break;
+		}
+		std::cout << dnmcaTinyVector[i] << ", ";
+	}
+	std::cout << '\n';
+
+	// - the "size_t" type
+	//issue w using an int values as the index of vectors:
+	//modern computers have enough memory to store a lot of objects in an array
+	//meaning: size() of the array (or specific position index) can be a larger number then the max value storable in an int - for these cases we have the - size_t data type
+	//size_t - guaranteed to be large enough to match the larges possible size of the array
+	//because of this, it is the recommended way of storing array sizes and indices:
+	for (size_t i{ 0 }; i < dnmcaTinyVector.size(); ++i) { // here! size_t
+		if (i == dnmcaTinyVector.size() - 1) {
+			std::cout << dnmcaTinyVector[i] << ". ";
+			break;
+		}
+		std::cout << dnmcaTinyVector[i] << ", ";
+	}
+	std::cout << '\n';
+
+	// - range-based for loops
+	//often, we usually don't need to work w indices at all - we just want to iterate over everything in the array
+	//for those scenarios, syntax:
+	for (int Number : dnmcaTinyVector) { // this is known as a range-based for loop
+		if (Number == dnmcaTinyVector.size()) {
+			std::cout << Number << ". ";
+			break;
+		}
+		std::cout << Number << ", ";
+	}
+	std::cout << '\n';
+	// - range-based for loops can receive their parameters by reference or value (w value being the default)
+	//this means each item in the collection is copied into the body of the loop, we should consider passing be reference instead
+	//particulary if the type we're using is expensive to copy:
+	for (int& Number : dnmcaTinyVector) {
+		if (Number == dnmcaTinyVector.size()) {
+			std::cout << Number << ". ";
+			break;
+		}
+		std::cout << Number << ", ";
+	}
+	std::cout << '\n';
+	//if the loop body isn't going to modify that reference, we should consider marking it as const:
+	for (const int& Number : dnmcaTinyVector) {
+		if (Number == dnmcaTinyVector.size()) {
+			std::cout << Number << ". ";
+			break;
+		}
+		std::cout << Number << ", ";
+	}
+	std::cout << '\n';
+
+	// - memory management
+	//arrays keep our objects in contiguous blocks of memory on our system
+	//as we push/emplace objects into our array - it may run out of space at its current memory location
+
+	//we can see how much of our capacity we're currently using by comparing what is returned from size() and capacity() methods:
+	//size() - number of elements currently in array
+	//capacity() - number of elements the array can hold in its current memory location
+	//below our std::vector initially has a capacity of 5, w all 5 spaces being taken
+	std::cout << "Capacity: " << dnmcaValueVectorB.size()
+		<< "/" << dnmcaValueVectorB.capacity(); // 5/5
+	//when we add 6th item - size() increases to 6, whilst the capacity() is now 7
+	dnmcaValueVectorB.emplace_back(6);
+	std::cout << "\nCapacity: " << dnmcaValueVectorB.size()
+		<< "/" << dnmcaValueVectorB.capacity(); // 6/7
+	//when we add elements beyond the current capacity - std::vector will:
+	// - allocate a new block of memory w a larger capacity
+	// - move all existing elements to the new location
+	// - deallocate the old memory block
+
+	// - proactively reserving capacity()
+	//moving an array to a new location has a performance cost, so we should consider reducing unnecessary movements
+	//if we know approximately how many objects we need to store - we can directly "reserve()" enough capacity() for them
+	dnmcaValueVectorB.reserve(100);
+	std::cout << "\nCapacity: " << dnmcaValueVectorB.size()
+		<< "/" << dnmcaValueVectorB.capacity(); // 6/100
+	// - over-reserving can waste memory
+	//std::vector w a capacity of 100 will consume more system memory than one w 5
+	//but if we think it's eventually going to grow to 100 anyway - may as well just reserve that space from the start (and eliminate all the expensive moving)
 
 
 	return 0; // Function w proclaimed return type should ALWAYS return somithing if else - code is invalid
