@@ -205,6 +205,8 @@ float annmsGetPi();
 
 // Dynamic Arrays using std::vector
 
+// Memory Ownership and Smart Pointers
+
 
 #include <iostream>
 using namespace std; //should get rid of it, though don't know where exacly everywhere is, for using "std::" instead
@@ -1875,6 +1877,70 @@ void dnmcafSetCenter(dnmcafGrid* GridToLog, int Value) {
 	(*GridToLog)[1][1] = Value;
 }
 
+// Memory Ownership and Smart Pointers
+//stack memory is straight-forward and efficient, automaticaly managing the lifecycle of our variables
+//limitations of stack memory include:
+// - scope-limited - variables in stack memory are destroyed when they go out of scope
+// - fixed size - stack memory is allocated at compile-time, so we cant create dynamic data structures that grow/shrink as needed
+// - size constraints - the stack size is usually much smaller then the heap, limiting the amoun of data we can store
+//to overcome this limitations C++ provides - dynamic memory allocation - using the heap
+
+//dynamic memory allows us to allocate a memory at a run-time, however, dynamic memory management is error-prone, common issues include:
+// - memory leaks - forgetting to deallocate a memory, leading to a resource waste
+// - dangling pointers - using pointers that point to already free memory
+// - double deletion - accidentally freeing the same memory twice
+
+//to mitigate these issues, we can implement the design pattern of memory ownership
+//memory ownership - concept suggests that resources (like objects stored in dynamically allocated memory) should have clear owners responsible for their lifecycle
+//(we can imagine that certain objects/funcition "own" other resources)
+//example: std::vector class assumes ownership of the objects it contains and manages an area of dynamic memory to store these objects
+
+// - smart pointers - in a sense, they try to give us flexibility of dynamic memory allocation w the simplicity of stack memory allocation, where memory is automaticaly released when it is no longer needed
+// - unique pointer - simplest form of a smart pointer, an implementation of which is available in the standart library as: std::unique_ptr
+//like any other pointer points to an object in memory, "unique" refers to the idea that it should be only unique pointer that points to that object
+//function or object that holds a unique pointer has exclusive ownership of the object that the pointer points to
+//unique pointers implement restrictions to help enforce this design
+
+// - std::make_unique()
+//by including <memory> we gain access to the std::make_unique(), using this function is the preferred way of creating unique pointers
+#include <memory>
+//int main() { auto smrtPointer{ std::make_unique<int>(41) }; }
+
+// - dereferencing unique pointers
+//example of unique pointers w a class:
+class smrtpCharacter {
+public:
+	std::string Name;
+	smrtpCharacter(std::string Name = "Frodo") : Name{ Name } {
+		std::cout << "\nCreating: " << Name;
+	}
+	~smrtpCharacter() {
+		//std::cout << "\nDeleting: " << Name;
+	}
+
+private:
+
+};
+
+// - copying unique pointers
+void smrtpFunctionA(std::unique_ptr<int> Num) {
+	//...
+}
+void smrtpFunctionB(int* Num) {
+	//...
+}
+
+// - std::move()
+//mechanism of transferring ownership:
+//#include <memory>
+#include <utility>
+//#include <iostream>
+void smrtpTakeOwnership(std::unique_ptr<int> Num) {
+	std::cout << "\nTakeOwnership function now "
+		"owns the pointer.";
+	std::cout << "\nValue: " << *Num;
+}
+
 
 int main() {
 	Level = Level + 1;
@@ -2904,6 +2970,77 @@ int main() {
 	// - over-reserving can waste memory
 	//std::vector w a capacity of 100 will consume more system memory than one w 5
 	//but if we think it's eventually going to grow to 100 anyway - may as well just reserve that space from the start (and eliminate all the expensive moving)
+
+	// Memory Ownership and Smart Pointers
+
+	auto smrtPointer{ std::make_unique<int>(41) };
+	// < > within this code indicates that std::make_unique() - is a template function
+	//note: we need to pass the type of data we want to create a pointer to within < >
+	//within ( ) - we can optionaly pass any arguments along to the constructor of our data type
+	//net effect of all this is that we have:
+	// - int object allocated in the free store (dynamic memory)
+	// - int having the initial value of 41
+	// - std::unique_ptr - smrtPointer - considered the sole owner of the integer that is stored in the heap
+
+	//std::make_unique() return type - std::unique_ptr of the corresponding type
+	//example:
+	std::unique_ptr<int> smrtPointerA{
+		//std::make_unique<int>() will return a std::unique_ptr<int>
+		std::make_unique<int>(41)
+	};
+	//however, when using std::make_unique() - somewhat common to use auto type deduction
+	auto smrtPointerB{ std::make_unique<int>(41) };
+	//type of underlying data (eg. int) is included in the statement already
+	//additionaly, std::make_unique() is so ubiquitous that it returns std::unique_ptr, so repeating this can add noise to our code
+
+	auto smrtpFrodo{
+		std::make_unique<smrtpCharacter>("Frodo")
+	};
+	//as w basic pointers, which are often reffered to as "raw" pointers, we can dereference smart pointers and access the object they point to using the * or -> operators
+	std::cout << "\nLogging "
+		<< (*smrtpFrodo).Name << '\n';
+	
+	auto smrtpGandalf{
+		std::make_unique<smrtpCharacter>("Gandalf")
+	};
+	std::cout << "\nLogging "
+		<< smrtpGandalf->Name << '\n';
+
+	// - copying unique pointers
+	//given the design intent it doesn't make sense to copy them directly (std::unique_ptr class protects against this by preventing its objects from being copied)
+	auto smrtPtr1{ std::make_unique<int>(41) };
+	//E1776: function "..." (declared at line ... of ...) cannot be referenced -- it is a deleted function
+	//auto smrtPtr2{ smrtPtr1 };
+	//when working w functions, passing by value is also a form of copying, so this will be prevented w similar error message:
+	//void smrtpFunction(std::unique_ptr<int> Num){ //... }
+	auto smrtPtrA{ std::make_unique<int>(41) };
+	//smrtpFunctionA(smrtPtrA); // E1776
+	
+	//for scenarios where we need to pass a pointer to a function - smart pointers implement the "get()" function, which returns the underlying raw pointer
+	//simply: get() - generates raw pointer
+	//this allows other parts of code to access objects, without creating copies of unique pointers
+	//void smrtpFunctionB(int* Num){ //... }
+	auto smrtPtrB{ std::make_unique<int>(41) };
+	//get() in action
+	smrtpFunctionB(smrtPtrB.get());
+	//w/in memory ownership paradigm: any function that has a raw pointer to a resource simply has "requesting access" to that resource, but does not own it
+	//resource if owned by whoever has the std::unique_ptr
+
+	//for scenarios where we want to "transfer ownership" of the resource - std::move()
+	//it's a function available in <utility> header, that allows to transfer ownership of a unique pointer
+	//mechanism of transferring ownership:
+	auto smrtpNumber{ std::make_unique<int>(41) };
+	std::cout << "\nmain function owns the pointer.";
+
+	smrtpTakeOwnership(std::move(smrtpNumber));
+
+	//Number is now in a "moved-from" state (after move() - Number in main no longer owns any object (it becomes a null pointer)
+	if (smrtpNumber == nullptr) {
+		std::cout << "\nNumber no longer owns any object.\n";
+	}
+	// - note: after using std::move() the original pointer is left in a valid but unspecified state
+	//it's SAFE to reassign it or let it go out of scope, but you SHOULDN'T try to use the object it previosly owned
+	//std::cout << *smrtpNumber; // exited with code -1073741819 (0xc0000005), though most compilers can detect this and will generate a warning
 
 
 	return 0; // Function w proclaimed return type should ALWAYS return somithing if else - code is invalid
