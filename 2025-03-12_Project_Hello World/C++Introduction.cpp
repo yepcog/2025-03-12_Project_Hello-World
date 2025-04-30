@@ -207,6 +207,8 @@ float annmsGetPi();
 
 // Memory Ownership and Smart Pointers
 
+// Copy Constructors and Operators
+
 
 #include <iostream>
 using namespace std; //should get rid of it, though don't know where exacly everywhere is, for using "std::" instead
@@ -1941,6 +1943,318 @@ void smrtpTakeOwnership(std::unique_ptr<int> Num) {
 	std::cout << "\nValue: " << *Num;
 }
 
+// Copy Constructors and Operators
+
+//two scenarios where objects get copied:
+
+// - when a new object is created by passing an existing object of the sane type to the constructor, also when we pass an argument by value to a function
+//struct Weapon{ /... }; int main() { Weapon SwordA; Weapon SwordB{ SwordA }; } - create SwordB by copying SwordA
+//also: void SomeFunction(Weapon W){ /... }; int main() { Weapon Sword; SomeFunction(Sword); } - create the W parameter by copying Sword
+
+// - when an existing object is provided as the right operand to the = operator
+//struct Weapon{ /... }; int main() { Weapon SwordA; Weapon SwordB; SwordA = SwordB; } - update SwordA by copying values from SwordB
+
+// - Subresources
+//primary reason we need to override default copying behavior is when our type is holding pointers to other types, these objects often referred to as - resources/subresources
+//example:
+struct sbrsrcSword {
+	std::string Name{ "Iron Sword" };
+	int Damage{ 41 };
+	float Durabillity{ 1.0f };
+};
+struct sbrsrcPlayer {
+	sbrsrcPlayer(sbrsrcSword* Weapon) : Weapon{ Weapon } {};
+	//Player type is holding a Sword "resource" in a pointer called Weapon
+	sbrsrcSword* Weapon{ nullptr };
+};
+//when we copy a Player object we should consider how subresources (such as the Weapon object) are handled as part of that process
+//there are ways we can control this copying process for custom types, thereby allowing us to implement the behaviors that are most appropriate for our use cases
+
+struct shrrSword{};
+struct shrrPlayer {
+	shrrPlayer(shrrSword* Weapon) : Weapon{ Weapon } {};
+	shrrSword* Weapon{ nullptr };
+};
+
+// - Copying unique pointers:
+//in particular, unique pointers (std::unique_ptr) prevent this sharing problem (by preventing themselves from being copied)
+//#include <memory>
+struct cptrSword{};
+//int main() {
+//	std::unique_ptr<cptrSword> cptrWeaponB{ cptrWeaponA }; } //E1776:"..."(declared at ... of ...) cannot be referenced
+//}
+
+//this also applies to classes that have std::unique_ptr member variables:
+//the objects of this class cannot be copied by default, as they contain a member variable that cannot be copied
+//let's update our Player class to store its Weapon as a unique pointer (std::unique_ptr<Sword>), rather than raw pointer (Sword*), so we can see this in action:
+struct cptrPlayer {
+	cptrPlayer() : Weapon{ std::make_unique<cptrSword>() } {}
+	std::unique_ptr<cptrSword> Weapon;
+};
+//int main() {
+//	cptrPlayer cptrPlayerTwo{ cptrPlayerOne }; //E1776: "..." (declared implicitly) cannot be referenced
+//}
+
+// - Copy constructors
+//from previous example we can note that the line that is attemting to copy PlayerOne is calling the function Player::Player(const Player&):
+// - Player::Player syntax identifies this function as a Player constructor
+// - it receiving a "const Player&" as an argument - that is, a constant reference to another Player object
+// - this constructor is called - copy constructor, and it is invoked when we construct a new object from an existing object of the same type
+
+//we can copy objects by default: this is because the compiler provides default copy constructors for the types we create
+//we can replace these default constructors w our own custom implementations
+//example:
+struct ccnstrWeapon {
+	//as usual, defining a constructor will delete the default constructor, but we can re-add it if needed:
+	ccnstrWeapon() = default;
+	ccnstrWeapon(const ccnstrWeapon& Original) {
+		std::cout << "\nCopying Weapon";
+	}
+};
+//copy constructor is invoked any time we need to construct a new object using an existing object of the same type
+//this includes when a function needs to create an object based on an argument passed to it by value
+void ccnstrFunction(ccnstrWeapon) {}
+
+//lets return to our original example, and implement the copy constructor for our Player objects
+//for now we simply replicate the behavior of the default copy constructor w some additional logging:
+struct ccnstrSword {
+	ccnstrSword() = default;
+	ccnstrSword(const ccnstrSword& Original) {
+		std::cout << "\nCopying Sword";
+	}
+};
+struct ccnstrPlayer {
+	ccnstrPlayer(ccnstrSword* Weapon) : Weapon{ Weapon } {}
+
+	// - Member initializer lists
+	//as w any constructor, we can use a member initializer list w our copy constructor
+	//this is the preferred way to set the initial values of member variables, so we should use it where possible:
+	ccnstrPlayer(const ccnstrPlayer& Original)
+		//: Weapon{ Original.Weapon } {
+		//we already have a constructor that initializes the Weapon variable, so we can call that from the initializer list of our copy constructor
+		: ccnstrPlayer{ Original.Weapon } {
+
+		//Weapon = Original.Weapon; //did that through member initializer list
+		std::cout << "\nCopying Player";
+	}
+
+	ccnstrSword* Weapon{ nullptr };
+};
+//as we can see from the output, the copy constructor from Sword is not invoked, and both of our Player objects are left sharing the same weapon
+
+// - Deep copying
+//let's fix our root problem:
+//instead of having our copies share their subresources, let's ensure every copy gets a complete copy of the subresources too
+//this is safer and easier to do using smart pointers, so we'll switch our implementation back to using a "std::unique_ptr" for now
+
+//remember, the function arguments passed to "std::make_unique()" are forwarded to the constructor of the type we're creating
+//we can invoke the copy constructor of that type by passing the object we want to copy
+//(this may include dereferencing a pointer to that object, if necessary)
+//auto someWeaponA{ std::make_unique<someSword>() };
+//auto someWeaponB{ std::make_unique<someSword>(*someWeaponA) };
+struct dpcSword {
+	dpcSword() = default;
+	dpcSword(const dpcSword& Original) {
+		std::cout << "\nDeep copying Sword";
+	}
+};
+struct dpcPlayer {
+	dpcPlayer() : Weapon{ std::make_unique<dpcSword>() } {}
+
+	//let's implement "std::make_unique()" approach in our Player example
+	//where we retrieve the Weapon we want to copy by dereferencing the original player's Weapon:
+	dpcPlayer(const dpcPlayer& Original)
+		: Weapon{ std::make_unique<dpcSword>(
+			*Original.Weapon
+		) } {
+		std::cout << "\nDeep copying Player";
+	}
+
+	std::unique_ptr<dpcSword> Weapon;
+};
+//as we can see from the output, the entire Sword object is now being copied, rather than just a pointer to it
+//result: our Player objects are no longer sharing the same Sword - they each get their own
+//fully copying an object in this way is often referred to as - deep copying
+//before, where we were simply copying the pointer to the same underlying object, is referred to as - shallow copying
+
+// - Copy assignment operator
+//another context in which objects are copied that we need to be mindful of when creating our classes:
+//when the = operator is used to update an existing object using the values of some other object of the same type:
+//PlayerOne;
+//PlayerTwo;
+//PlayerTwo = PlayerOne;
+//the compiler provides a default implementation of this operator for our types
+//the default implementation of this operator behaves in the same way as the default copy constructor, shallow-copying values from the right operand to the left operand
+
+//we can provide a custom implementation of this operator, using the same syntax we would when overloading any other operator
+//Player& Player::operator=(const Player&)
+
+// Copy assignment operator
+//a function called "operator=" in the Player class that accepts a const reference to Player object and returns a Player reference
+//basic scaffolding would look like this:
+//caoPlayer* operator=(const Player& Original) {
+	//update this Player using data from Original
+	//...
+	//this returns a reference to it:
+	//return *this;
+//}
+
+//our program will now compile, but our copy assignment operator isn't doing anything usefull, let's make it copy the Weapon
+//however, the copy assignment operator is not creating a new Player object, rather, it is uploading an existing Player, and this existing Player already has a Weapon
+
+//depending on our specific requirements, there are two main options we have to deal w this:
+// - we can update existing Weapon to match the values from the Weapon we want to copy:
+//that typically involves using the = operator, thereby calling the copy assignment operator on the Sword class
+//(struct Sword { Sword& operator=(const Sword& Original) { //... return *this; } };
+struct caoASword {
+	caoASword() = default;
+	caoASword(const caoASword& Original) {
+		std::cout << "\nCopying ASword by Constructor";
+	}
+	caoASword& operator=(const caoASword& Original) {
+		std::cout << "\nCopying ASword by Assignment";
+		return *this;
+	}
+};
+struct caoAPlayer {
+	caoAPlayer() : Weapon{ std::make_unique<caoASword>() } {}
+
+	caoAPlayer(const caoAPlayer& Original)
+		: Weapon{ std::make_unique<caoASword>(
+			*Original.Weapon
+		) } {
+		std::cout << "\nCopying APlayer";
+	}
+
+	
+	caoAPlayer& operator=(const caoAPlayer& Original) {
+		*Weapon = *Original.Weapon;
+		return *this;
+	}
+
+	std::unique_ptr<caoASword> Weapon;
+};
+
+// - alternatively, we can delete existing Weapon and construct a new one, thereby calling the copy constructor for the Sword type
+//we can pass the original player's Weapon as the argument to "std::make_unique<Sword>()":
+//std::make_unique<caoSword>(*Original.Weapon)
+//this will invoke the Sword type's copy constructor and return a std::unique_ptr that manages this new Sword
+struct caoBSword {
+	caoBSword() = default;
+	caoBSword(const caoBSword& Original) {
+		std::cout << "\nCopying BSword by Constructor";
+	}
+};
+struct caoBPlayer {
+	caoBPlayer() : Weapon{ std::make_unique<caoBSword>() } {}
+
+	caoBPlayer(const caoBPlayer& Original)
+		: Weapon{ std::make_unique<caoBSword>(
+			*Original.Weapon
+		) } {
+		std::cout << "\nCopying BPlayer";
+	}
+	//the "std::unique_ptr" type has overloaded the = operator make updates like this easier
+	//it ensures the object it was previously managing is deleted, so updating the "std::unique_ptr" looks much the same as updating any other type
+	caoBPlayer& operator=(const caoBPlayer& Original) {
+		Weapon = std::make_unique<caoBSword>(*Original.Weapon);
+		return *this;
+	}
+
+	std::unique_ptr<caoBSword> Weapon;
+};
+
+// - Copying an object itself
+//when defining a copy assignment operator, there is an edge case we need to consider:
+// - that both operands are the same object (this is rare, bet technically valid code):
+//int main() {
+	//Player PlayerOne;
+	//PlayerOne = PlayerOne;
+//}
+//whe should ensure the logic in our operator remains valid in this scenario
+struct caoCPlayer {
+	caoCPlayer() : Weapon{ std::make_unique<caoBSword>() } {}
+
+	caoCPlayer(const caoCPlayer& Original)
+		: Weapon{ std::make_unique<caoBSword>(
+			*Original.Weapon
+		) } {
+		std::cout << "\nCopying CPlayer";
+	}
+
+	//most common approach is:
+	//to have our operator start by  comparing the "this" pointer to the memory address of the right operand
+	//if these values are equal - both of our operands are the same type
+	caoCPlayer& operator=(const caoCPlayer& Original) {
+		//when this is the case: our copy operator typically doesn't need to do anything, so we can return immediatelly:
+		if (&Original == this) {
+			return *this;
+		}
+
+		Weapon = std::make_unique<caoBSword>(*Original.Weapon);
+		return *this;
+	}
+
+	std::unique_ptr<caoBSword> Weapon;
+};
+
+// - Recursive copying
+//default implementations of a copy constructor and assignment operator (generated by the compiler) simply iterate through all the member variables
+//and call the copy constructed operator or assignment operator associated w their respective types
+//this process respects any custom implementations we've provided for those types
+//example:
+
+//we define a Party struct that contains Player objects
+//Party class uses default copy functions, whilst Player has provided custom implementations
+struct rcrsvPlayer {
+	rcrsvPlayer() = default;
+	rcrsvPlayer(const rcrsvPlayer& Original) {
+		std::cout << "\nCopying Player by Constructor";
+	}
+	rcrsvPlayer& operator=(const rcrsvPlayer& Original) {
+		std::cout << "\nCopying Player by Assignment";
+		return *this;
+	}
+};
+struct rcrsvParty {
+	rcrsvPlayer rcrsvPlayerOne;
+	//Other Players
+	//...
+};
+//in general: objects, that store subresources do not need to intervene to control how those subresources are copied
+//even if those subresources have non-standart requirements
+//we simply implement these requirements by defining copy constructors and operators on the type that needs them:
+//objects that store instances of those types will then apply those behaviors automatically
+
+// - Preventing copying
+//sometimes, we don't want our types to support copying, this can be an intentional design choice, or we'd rather not do it until we're sure we need that capability
+//in either case, we should explicitly delete the default copy constructor and copy assignment operator
+struct prvntcPlayer {
+	//default constructor
+	prvntcPlayer() = default;
+
+	//the syntax for deleting constructors and operators looks like this:
+	prvntcPlayer(const prvntcPlayer&) = delete;
+	prvntcPlayer& operator=(const prvntcPlayer&) = delete;
+};
+//now, if someone tries to copy our object they'll get a compiler error - rather than a program that could have memory issues or other bugs
+
+// - std::shared_ptr
+//in some scenarios, it's more appropriate for ownership of some resource to be shared among multiple objects
+//standart library provides another pointer for this scenario - std::shared_ptr
+// - whilst a std::unique_ptr automaticaly releases the resource it's managing once it's unique owner is destroyed
+// - std::shared_ptr will release it's object only when ALL of it's shared owners are deleted
+
+//to facilitate shared ownership, shared pointers can naturally be copied
+//and they provide utilities such as a "use_count()" method to return how many pointers the owner currently has
+struct shrptrQuest {};
+struct shrptrPlayer {
+	shrptrPlayer()
+		: CurrentQuest{ std::make_shared<shrptrQuest>() } {
+	}
+	std::shared_ptr<shrptrQuest> CurrentQuest;
+};
+
 
 int main() {
 	Level = Level + 1;
@@ -3041,6 +3355,95 @@ int main() {
 	// - note: after using std::move() the original pointer is left in a valid but unspecified state
 	//it's SAFE to reassign it or let it go out of scope, but you SHOULDN'T try to use the object it previosly owned
 	//std::cout << *smrtpNumber; // exited with code -1073741819 (0xc0000005), though most compilers can detect this and will generate a warning
+
+	// Copy Constructors and Operators
+	sbrsrcSword sbrsrcWeapon;
+	sbrsrcPlayer sbrsrcA{ &sbrsrcWeapon };
+	sbrsrcA.Weapon->Durabillity = 0.9f;
+
+	sbrsrcPlayer sbrsrcB{ sbrsrcA };
+	sbrsrcB.Weapon; //what is this, exactly?
+	//answer depends entirely on the type of object we're creating and requirements of our program
+
+	// - Sharing Resources
+	shrrSword shrrIronSword;
+	//we have a Player class that carries a Sword, which is stores as a pointer
+	shrrPlayer shrrPlayerOne{ &shrrIronSword };
+	//when we copy an object - we copy the pointers to its subresources, but not necessarily the objects to which they point
+	
+	//in the following example: we copy PlayerOne to create PlayerTwo
+	//accordingly PlayerOne.Weapon is copied to create PlayerTwo.Weapon, however:
+	// - copying a pointer just means we now have two pointers pointing at the same underlying resource:
+	shrrPlayer shrrPlayerTwo{ shrrPlayerOne };
+	if (shrrPlayerOne.Weapon = shrrPlayerTwo.Weapon) {
+		std::cout << "\nPlayers sharing same weapon";
+		//this unlikely to be what we want and could cause problems as we build out our program w more complex behaviors
+	}
+	//example: if PlayerOne modifies the weapon - those changes will affect PlayerTwo
+	//as we begin to rely more heavily on the resource management - this'll cause further resource management problems
+
+	auto cptrWeaponA{ std::make_unique<cptrSword>() };
+	//std::unique_ptr<cptrSword> cptrWeaponB{ cptrWeaponA }; //E1776:"..."(declared at ... of ...) cannot be referenced
+	cptrPlayer cptrPlayerOne;
+	//cptrPlayer cptrPlayerTwo{ cptrPlayerOne }; //E1776: "..." (declared implicitly) cannot be referenced
+
+	ccnstrWeapon ccnstrWeaponA;
+	//constructing new swords by copying WeaponA
+	ccnstrWeapon ccnstrWeaponB{ ccnstrWeaponA }; // Copying Sword
+	ccnstrWeapon ccnstrWeaponC = ccnstrWeaponA; // Copying Sword
+	//passing by value is copying to
+	ccnstrFunction(ccnstrWeaponA); // Copying Sword
+
+	ccnstrSword ccnstrIronSword;
+	ccnstrPlayer ccnstrPlayerOne{ &ccnstrIronSword };
+	ccnstrPlayer ccnstrPlayerTwo{ ccnstrPlayerOne };
+	if (ccnstrPlayerOne.Weapon == ccnstrPlayerTwo.Weapon) {
+		std::cout << "\nPlayers sharing same weapon";
+	}
+
+	dpcPlayer dpcPlayerOne;
+	dpcPlayer dpcPlayerTwo{ dpcPlayerOne };
+	if (dpcPlayerOne.Weapon != dpcPlayerTwo.Weapon) {
+		std::cout << "\nPlayers are NOT sharing "
+			"the same weapon";
+	}
+
+	//in this case our type contains a std::unique_ptr, which cannot be copied, as such - we get a similar error:
+	//dpcPlayerTwo = dpcPlayerOne; //E1776: function "..." (declared implicitly) cannot be referenced -- it is a deleted function
+
+	caoAPlayer caoAPlayerOne;
+	caoAPlayer caoAPlayerTwo;
+	caoAPlayerTwo = caoAPlayerOne;
+
+	caoBPlayer caoBPlayerOne;
+	caoBPlayer caoBPlayerTwo;
+	caoBPlayerTwo = caoBPlayerOne;
+
+	caoCPlayer caoCPlayerOne;
+	caoCPlayerOne = caoCPlayerOne;
+	std::cout << '\n';
+
+	//when we copy Party objects, the custom Player copy constructor and assignment operators are automaticaly invoked when appropriate:
+	rcrsvParty rcrsvPartyOne;
+	rcrsvParty rcrsvPartyTwo{ rcrsvPartyOne };
+	rcrsvPartyOne = rcrsvPartyTwo;
+	std::cout << '\n';
+
+	prvntcPlayer prvntcPlayerOne;
+	//prvntcPlayer prvntcPlayerTwo{ prvntcPlayerOne }; //E1776: function "..." (declared at line ...) cannot be referenced -- it is a deleted function
+	prvntcPlayer prvntcPlayerThree;
+	//prvntcPlayerOne = prvntcPlayerThree; //E1776: function "..." (declared at line ...) cannot be referenced -- it is a deleted function
+
+	shrptrPlayer shrptrOne;
+	std::cout << "\nQuest owner count: "
+		<< shrptrOne.CurrentQuest.use_count();
+	//create a copy
+	shrptrPlayer shrptrTwo{ shrptrOne };
+	if (shrptrOne.CurrentQuest == shrptrTwo.CurrentQuest) {
+		std::cout << "\nPlayers have same quest";
+	}
+	std::cout << "\nQuest owner count: "
+		<< shrptrOne.CurrentQuest.use_count();
 
 
 	return 0; // Function w proclaimed return type should ALWAYS return somithing if else - code is invalid
